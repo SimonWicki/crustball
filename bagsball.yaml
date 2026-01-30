@@ -1,0 +1,69 @@
+# BagsBall worker configuration
+# This file is intentionally explicit. Anything not specified here should be a deliberate decision.
+#
+# All amounts are expressed in base units unless stated otherwise.
+# For SPL tokens, that means integer "raw" amounts (no decimals).
+#
+network:
+  commitment: confirmed
+  rpcTimeoutMs: 15000
+
+tokens:
+  crustballMint: ${CRUSTBALL_MINT}
+  bagsMint: ${BAGS_MINT}
+
+distribution:
+  # Interval between executions. The scheduler is "best effort" and will not run overlapping cycles.
+  intervalSeconds: 600
+
+  # Minimum BagsBall balance required for eligibility (raw base units).
+  # Example: if decimals=6, then 100_000 tokens is 100000 * 1e6.
+  minEligibleBalanceRaw: 100000000000
+
+  # How many recipients to select per cycle.
+  recipientsPerCycle: 50
+
+  # Amount distributed to each selected wallet (raw base units). If null, worker computes
+  # equal split based on available pool balance and a max-per-cycle cap.
+  amountPerRecipientRaw: null
+
+  # Hard cap for total distribution per cycle (raw). Prevents draining the pool in a single run.
+  maxTotalPerCycleRaw: 5000000000000
+
+randomness:
+  # Deterministic seed inputs. These are concatenated and hashed to seed the selection PRNG.
+  # If you enable VRF later, keep this for fallback and audit trails.
+  seed:
+    includeRecentBlockhash: true
+    includeSlot: true
+    includeCycleId: true
+    extraStaticSalt: "crustball:v0"
+
+holderDiscovery:
+  # The worker supports multiple strategies for finding holders.
+  # 1) tokenProgramAccounts: scan Token Program accounts for mint
+  # 2) snapshotFile: use a locally maintained holder snapshot file
+  strategy: tokenProgramAccounts
+
+  tokenProgramAccounts:
+    batchSize: 250
+    concurrency: 6
+    maxAccounts: 200000
+    # When true, exclude known program-owned accounts (AMMs, vaults) if you provide allow/deny lists.
+    applyAddressFilters: true
+
+addressFilters:
+  denylist:
+    - "11111111111111111111111111111111"
+  allowlist: []
+
+telemetry:
+  enabled: true
+  jsonlLogPath: ./tmp/cycles.jsonl
+
+safety:
+  # If the worker cannot enumerate holders reliably, it should fail closed.
+  failClosedOnHolderErrors: true
+
+  # If the pool balance is below this, skip distribution for the cycle.
+  minPoolBalanceRaw: 1000000000

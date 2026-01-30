@@ -1,0 +1,16 @@
+name: Release Dry Run
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm i --no-audit --no-fund
+      - run: npm run build
+      - run: node dist/cli.js --help
